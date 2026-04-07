@@ -296,8 +296,8 @@ def _submit_render(chart_url: str, audio_url: str | None, caption: str, bg_image
         "source": {
             "output_format": "mp4",
             "frame_rate": 60,
-            "width": 720,
-            "height": 1280,
+            "width": 1080,
+            "height": 1920,
             "duration": 15,
             "elements": elements
         }
