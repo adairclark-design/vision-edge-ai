@@ -106,11 +106,20 @@ def render_whale_graphic(trade: dict, output_path: str) -> bool:
         draw.text(((width - lw) / 2, y_text), line, fill="#F8FAFC", font=font_market)
         y_text += 55
         
-    # ── Draw Exact Bet Text
-    font_bet = _get_font(64, bold=True)
+    # ── Draw Exact Bet Text (Auto-scaling to prevent cropping)
+    font_size = 64
+    font_bet = _get_font(font_size, bold=True)
     bet_text = f"{amount_str} on '{outcome}'"
-    b_bbox = draw.textbbox((0, 0), bet_text, font=font_bet)
-    bw = b_bbox[2] - b_bbox[0]
+    max_text_width = width - (card_margin * 2) - 40
+    
+    while True:
+        b_bbox = draw.textbbox((0, 0), bet_text, font=font_bet)
+        bw = b_bbox[2] - b_bbox[0]
+        if bw <= max_text_width or font_size <= 24:
+            break
+        font_size -= 2
+        font_bet = _get_font(font_size, bold=True)
+        
     draw.text(((width - bw) / 2, y_text + 40), bet_text, fill=accent_color, font=font_bet)
     
     # ── Draw sleek glowing Progress Bar
