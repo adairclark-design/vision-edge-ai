@@ -41,18 +41,9 @@ def _load_secrets() -> dict:
 
 SECRETS        = _load_secrets()
 
-# MUSIC_VAULT: Royalty-free Lofi/Ambient tracks hosted on stable, permanent CDNs.
-# Each URL is verified accessible. Kling kinetic background audio is muted,
-# so this BGM plays freely without conflict.
-MUSIC_VAULT = [
-    # ccMixter / Free Music Archive — highly stable infrastructure
-    "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Kai_Engel/Satin/Kai_Engel_-_07_-_Sentinel.mp3",
-    "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/WFMU/Broke_For_Free/Directionless_EP/Broke_For_Free_-_01_-_Night_Owl.mp3",
-    "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Idea/Kai_Engel_-_08_-_Comfort.mp3",
-    # Archive.org verified working tracks
-    "https://archive.org/download/3x13_-_a_summer_spent_inside/3x.13_-_a_summer_spent_inside_-_cd1_01_-_previous_episode.mp3",
-    "https://archive.org/download/3x13_-_a_summer_spent_inside/3x.13_-_a_summer_spent_inside_-_cd1_02_-_gusto.mp3",
-]
+FAL_KEY        = SECRETS.get("FAL_KEY", os.getenv("FAL_KEY", ""))
+if FAL_KEY:
+    os.environ["FAL_KEY"] = FAL_KEY
 
 CREATOMATE_KEY = SECRETS.get("CREATOMATE_API_KEY", os.getenv("CREATOMATE_API_KEY", ""))
 TEMPLATE_ID    = SECRETS.get("CREATOMATE_TEMPLATE_ID", os.getenv("CREATOMATE_TEMPLATE_ID", ""))
@@ -261,21 +252,29 @@ def _submit_render(chart_url: str, audio_url: str | None, caption: str, bg_image
             "audio_fade_in": 0.5
         })
         
-    # Background Ambient Audio Matrix
-    # Pick a track and verify it responds 200 before injecting.
-    # If the chosen URL is dead, try the next one. Skip BGM entirely rather than crashing.
+    # Generative AI Background Music Matrix via fal.ai 
+    # Creates mathematically unique, royalty-free audio tracks invisible to Meta/YT ID bots
     _bgm_url = None
-    _candidates = MUSIC_VAULT.copy()
-    random.shuffle(_candidates)
-    for _candidate in _candidates:
+    if FAL_KEY:
+        log.info("[BGM] Requesting generative AI ambient beat from fal.ai/stable-audio...")
         try:
-            _probe = requests.head(_candidate, timeout=5, allow_redirects=True)
-            if _probe.status_code == 200:
-                _bgm_url = _candidate
-                break
-            log.warning(f"[BGM] Track unavailable ({_probe.status_code}): {_candidate}")
+            import fal_client
+            handler = fal_client.submit(
+                "fal-ai/stable-audio",
+                arguments={
+                    "prompt": "tense, dark, cinematic tech-finance thriller ambient background music, heavy bass, no vocals, smooth flow",
+                    "seconds_total": 15,
+                    "steps": 100
+                }
+            )
+            audio_res = handler.get()
+            _bgm_url  = audio_res.get("audio_file", {}).get("url")
+            if _bgm_url:
+                log.info(f"[BGM] Track synthesized seamlessly.")
         except Exception as _e:
-            log.warning(f"[BGM] Track probe failed: {_candidate} — {_e}")
+            log.warning(f"[BGM] AI music generation failed: {_e}. Proceeding without BGM.")
+    else:
+        log.warning("[BGM] FAL_KEY missing. Bypassing music generation.")
 
     if _bgm_url:
         elements.append({
