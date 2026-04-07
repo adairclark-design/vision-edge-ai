@@ -173,36 +173,50 @@ def post_video(platform: str, video_url: str, caption: str, dry_run: bool = Fals
         f"#Polymarket #Kalshi #PredictionMarkets #SmartMoney #WhaleTracking"
     )
 
-    # multipart/form-data payload — platform[] sends all three
-    # Upload-Post uses the same field name "platform[]" for each platform
-    form_data = [
-        ("user",             UPLOAD_POST_USER),
-        ("video",            video_url),          # public HTTPS URL is accepted directly
-        ("platform[]",       "tiktok"),
-        ("platform[]",       "youtube"),
-        ("platform[]",       "instagram"),
-        ("title",            youtube_title),       # Required for YouTube
-        ("description",      youtube_desc),        # YouTube description
-        ("async_upload",     "true"),              # Return immediately; don't wait for each platform
-    ]
-
+    log.info(f"[Upload-Post] Downloading video from {video_url[:30]}... for binary injection")
+    
+    import tempfile
+    local_vid = tempfile.mktemp(suffix=".mp4")
     try:
+        with open(local_vid, 'wb') as f:
+            v_resp = requests.get(video_url, timeout=60)
+            v_resp.raise_for_status()
+            f.write(v_resp.content)
+            
+        data = {
+            "user": UPLOAD_POST_USER,
+            "platform[]": ["tiktok", "youtube", "instagram"],
+            "title": youtube_title,
+            "description": youtube_desc,
+            "async_upload": "true"
+        }
+        
+        # Explicitly declare the file signature to prevent Image miscategorizations
+        files = {
+            "video": ("video.mp4", open(local_vid, "rb"), "video/mp4")
+        }
+
         resp = requests.post(
             UPLOAD_POST_URL,
             headers={
-                "Authorization": f"Apikey {api_key}",   # "Apikey" not "Bearer"
+                "Authorization": f"Apikey {api_key}",
             },
-            data=form_data,   # multipart/form-data — requests handles this automatically
-            timeout=120,
+            data=data,   
+            files=files, # Forces strict multipart/form-data boundary
+            timeout=180,
         )
 
         log.info(f"[Upload-Post] HTTP {resp.status_code}")
         resp.raise_for_status()
-
+        
         data = resp.json()
         log.info(f"[Video] Posted to {VIDEO_PLATFORMS} via Upload-Post ✅")
         log.info(f"[Video] Response: {json.dumps(data)[:400]}")
         _mark_posted("video")
+        
+        if os.path.exists(local_vid):
+            os.remove(local_vid)
+            
         return {"status": "success", "platforms": VIDEO_PLATFORMS, **data}
 
     except requests.HTTPError as e:
