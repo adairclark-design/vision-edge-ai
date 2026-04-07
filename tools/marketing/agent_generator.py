@@ -98,44 +98,60 @@ def _is_safe_content(text: str) -> bool:
 
 
 # ── LLM: OpenRouter (Hermes) ──────────────────────────────────────────────────
-def _call_openrouter(system: str, user: str, secrets: dict) -> dict | None:
+def _call_openrouter(system: str, user: str, secrets: dict, max_retries: int = 3) -> dict | None:
     """
     Calls OpenRouter with nousresearch/hermes-3-llama-3.1-70b.
-    Returns parsed JSON dict, or None on failure.
+    Includes an active exponential backoff loop to catch 429 Rate Limits and 502 Bad Gateways.
+    Returns parsed JSON dict, or None on critical failure.
     """
     import requests
+    import time
     api_key = secrets.get("OPENROUTER_API_KEY", os.getenv("OPENROUTER_API_KEY", ""))
     if not api_key:
         log.error("OPENROUTER_API_KEY not set.")
         return None
 
-    try:
-        resp = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization":  f"Bearer {api_key}",
-                "Content-Type":   "application/json",
-                "HTTP-Referer":   "https://polyvision.app",
-                "X-Title":        "PolyVision Marketing Agent",
-            },
-            json={
-                "model":       "nousresearch/hermes-3-llama-3.1-70b",
-                "messages":    [
-                    {"role": "system", "content": system},
-                    {"role": "user",   "content": user},
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature":     0.85,
-                "max_tokens":      800,
-            },
-            timeout=45,
-        )
-        resp.raise_for_status()
-        raw = resp.json()["choices"][0]["message"]["content"]
-        return json.loads(raw)
-    except Exception as e:
-        log.error(f"OpenRouter call failed: {e}")
-        return None
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization":  f"Bearer {api_key}",
+                    "Content-Type":   "application/json",
+                    "HTTP-Referer":   "https://polyvision.app",
+                    "X-Title":        "PolyVision Marketing Agent",
+                },
+                json={
+                    "model":       "nousresearch/hermes-3-llama-3.1-70b",
+                    "messages":    [
+                        {"role": "system", "content": system},
+                        {"role": "user",   "content": user},
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature":     0.85,
+                    "max_tokens":      800,
+                },
+                timeout=45,
+            )
+            resp.raise_for_status()
+            raw = resp.json()["choices"][0]["message"]["content"]
+            return json.loads(raw)
+            
+        except requests.exceptions.HTTPError as e:
+            if resp.status_code == 429:
+                log.warning(f"OpenRouter 429 Too Many Requests. (Attempt {attempt}/{max_retries})")
+            else:
+                log.warning(f"OpenRouter HTTP Error: {e} (Attempt {attempt}/{max_retries})")
+        except Exception as e:
+            log.warning(f"OpenRouter System Error: {e} (Attempt {attempt}/{max_retries})")
+            
+        if attempt < max_retries:
+            delay = 15 * attempt
+            log.info(f"⏳ Initiating exponential backoff: Waiting {delay} seconds before retry...")
+            time.sleep(delay)
+    
+    log.error("❌ CRITICAL: OpenRouter rate limit sustained. All backup attempts failed.")
+    return None
 
 
 # ── X (Twitter) Post Generation ───────────────────────────────────────────────
