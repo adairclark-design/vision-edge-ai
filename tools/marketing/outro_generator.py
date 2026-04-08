@@ -43,20 +43,12 @@ def generate_outro() -> str | None:
     
     logo_rendered = False
     
-    # Securely retrieve the authentic 3D Native Apple Whale from Emojipedia
-    whale_url = "https://em-content.zobj.net/source/apple/354/whale_1f40b.png"
+    # Load the highly proprietary custom PolyVision Brand Logo
     try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+        logo_path = os.path.join(ASSETS_DIR, 'whale_logo.png')
+        logo = Image.open(logo_path).convert("RGBA")
         
-        req = urllib.request.Request(whale_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, context=ctx) as r:
-            logo_bytes = io.BytesIO(r.read())
-            
-        logo = Image.open(logo_bytes).convert("RGBA")
-        
-        # Scale the Apple emoji beautifully
+        # Scale the custom brand logo beautifully
         logo.thumbnail((675, 675), Image.Resampling.LANCZOS)
         lw, lh = logo.size
         
