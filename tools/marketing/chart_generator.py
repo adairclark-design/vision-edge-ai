@@ -40,7 +40,7 @@ def _draw_gradient(img, color_top, color_bottom):
 
 def render_whale_graphic(trade: dict, output_path: str) -> bool:
     """Renders a custom prediction market UI card graphic."""
-    width, height = 720, 1280
+    width, height = 1080, 1920
     
     # Premium Dynamic Gradients
     palettes = [
@@ -73,16 +73,16 @@ def render_whale_graphic(trade: dict, output_path: str) -> bool:
     card_bg = (22, 27, 38, 200) # RGBA Deep Glassmorphism (opacity ~78%)
     
     # ── Draw Top Alert text
-    font_alert = _get_font(36, bold=True)
+    font_alert = _get_font(54, bold=True)
     alert_text = "🚨 POLYVISION WHALE ALERT"
     # To center:
     bbox = draw.textbbox((0, 0), alert_text, font=font_alert)
-    draw.text(((width - (bbox[2] - bbox[0])) / 2, 120), alert_text, fill="#5C5FE5", font=font_alert)
+    draw.text(((width - (bbox[2] - bbox[0])) / 2, 180), alert_text, fill="#5C5FE5", font=font_alert)
 
     # ── Draw UI Card Boundary
-    card_margin = 40
-    card_top = 250
-    card_height = 550
+    card_margin = 60
+    card_top = 375
+    card_height = 825
     
     # rounded_rectangle requires Pillow >= 8.2.0
     try:
@@ -95,57 +95,57 @@ def render_whale_graphic(trade: dict, output_path: str) -> bool:
         draw.rectangle([card_margin, card_top, width - card_margin, card_top + card_height], fill=card_bg)
         
     # ── Draw Market Title
-    font_market = _get_font(42, bold=True)
+    font_market = _get_font(63, bold=True)
     import textwrap
     wrapped_market = textwrap.fill(market, width=26)
     
-    y_text = card_top + 60
+    y_text = card_top + 90
     for line in wrapped_market.split('\n'):
         l_bbox = draw.textbbox((0, 0), line, font=font_market)
         lw = l_bbox[2] - l_bbox[0]
         draw.text(((width - lw) / 2, y_text), line, fill="#F8FAFC", font=font_market)
-        y_text += 55
+        y_text += 82
         
     # ── Draw Exact Bet Text (Auto-scaling to prevent cropping)
-    font_size = 64
+    font_size = 96
     font_bet = _get_font(font_size, bold=True)
     bet_text = f"{amount_str} on '{outcome}'"
-    max_text_width = width - (card_margin * 2) - 40
+    max_text_width = width - (card_margin * 2) - 60
     
     while True:
         b_bbox = draw.textbbox((0, 0), bet_text, font=font_bet)
         bw = b_bbox[2] - b_bbox[0]
-        if bw <= max_text_width or font_size <= 24:
+        if bw <= max_text_width or font_size <= 36:
             break
         font_size -= 2
         font_bet = _get_font(font_size, bold=True)
         
-    draw.text(((width - bw) / 2, y_text + 40), bet_text, fill=accent_color, font=font_bet)
+    draw.text(((width - bw) / 2, y_text + 60), bet_text, fill=accent_color, font=font_bet)
     
     # ── Draw sleek glowing Progress Bar
-    bar_y = y_text + 160
-    bar_margin = card_margin + 60
+    bar_y = y_text + 240
+    bar_margin = card_margin + 90
     bar_width = width - (bar_margin * 2)
-    bar_height = 40
+    bar_height = 60
     
     try:
         # Background bar
         draw.rounded_rectangle([bar_margin, bar_y, bar_margin + bar_width, bar_y + bar_height], 
-                               radius=20, fill="#0B101A")
+                               radius=30, fill="#0B101A")
         # Filled chunk
         fill_w = bar_width * (pct / 100.0)
         draw.rounded_rectangle([bar_margin, bar_y, bar_margin + fill_w, bar_y + bar_height], 
-                               radius=20, fill=accent_color)
+                               radius=30, fill=accent_color)
     except AttributeError:
         draw.rectangle([bar_margin, bar_y, bar_margin + bar_width, bar_y + bar_height], fill="#0B101A")
         draw.rectangle([bar_margin, bar_y, bar_margin + fill_w, bar_y + bar_height], fill=accent_color)
         
     # ── Draw probability text
-    font_pct = _get_font(36, bold=True)
+    font_pct = _get_font(54, bold=True)
     pct_text = f"{pct:.0f}% chance"
     p_bbox = draw.textbbox((0, 0), pct_text, font=font_pct)
     pw = p_bbox[2] - p_bbox[0]
-    draw.text(((width - pw) / 2, bar_y + 60), pct_text, fill="#94A3B8", font=font_pct)
+    draw.text(((width - pw) / 2, bar_y + 90), pct_text, fill="#94A3B8", font=font_pct)
     
     # (Watermark is now beautifully handled by the dedicated Outro Generator!)
     

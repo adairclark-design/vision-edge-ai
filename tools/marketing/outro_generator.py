@@ -35,7 +35,7 @@ def _draw_gradient(img, color_top, color_bottom):
 
 
 def generate_outro() -> str | None:
-    width, height = 720, 1280
+    width, height = 1080, 1920
     
     # ── Match Genuine Logo Background (13, 17, 23)
     img = Image.new('RGB', (width, height), (13, 17, 23))
@@ -57,32 +57,32 @@ def generate_outro() -> str | None:
         logo = Image.open(logo_bytes).convert("RGBA")
         
         # Scale the Apple emoji beautifully
-        logo.thumbnail((450, 450), Image.Resampling.LANCZOS)
+        logo.thumbnail((675, 675), Image.Resampling.LANCZOS)
         lw, lh = logo.size
         
         # Absolute center horizontally
         center_x = int((width - lw) / 2)
-        center_y = int((height - lh) / 2) - 80
+        center_y = int((height - lh) / 2) - 120
         
         # Paste with transparent alpha mask identically
         img.paste(logo, (center_x, center_y), logo)
         logo_rendered = True
         
         # Place the master PolyVision text block
-        font_main = _get_font(80, bold=True)
+        font_main = _get_font(120, bold=True)
         m_text = "PolyVision"
         m_bbox = draw.textbbox((0, 0), m_text, font=font_main)
         mw = m_bbox[2] - m_bbox[0]
         
         # Electric glow PolyVision primary text
-        draw.text(((width - mw) / 2, center_y + lh + 40), m_text, fill="#00E6F0", font=font_main)
+        draw.text(((width - mw) / 2, center_y + lh + 60), m_text, fill="#00E6F0", font=font_main)
         
         # Place the URL text underneath for final CTA authority
-        font_url = _get_font(40, bold=True)
+        font_url = _get_font(60, bold=True)
         u_text = "polyvision.app"
         u_bbox = draw.textbbox((0, 0), u_text, font=font_url)
         uw = u_bbox[2] - u_bbox[0]
-        draw.text(((width - uw) / 2, center_y + lh + 140), u_text, fill="#3B82F6", font=font_url)
+        draw.text(((width - uw) / 2, center_y + lh + 210), u_text, fill="#3B82F6", font=font_url)
         
     except Exception as e:
         log.warning(f"Could not render absolute logo match: {e}")
