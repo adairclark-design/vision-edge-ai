@@ -251,43 +251,9 @@ def _submit_render(chart_url: str, audio_url: str | None, caption: str, bg_image
             "volume": "100%",    # Full volume for main narration
             "audio_fade_in": 0.5
         })
-        
-    # Generative AI Background Music Matrix via fal.ai 
-    # Creates mathematically unique, royalty-free audio tracks invisible to Meta/YT ID bots
-    _bgm_url = None
-    if FAL_KEY:
-        log.info("[BGM] Requesting generative AI ambient beat from fal.ai/stable-audio...")
-        try:
-            import fal_client
-            handler = fal_client.submit(
-                "fal-ai/stable-audio",
-                arguments={
-                    "prompt": "tense, dark, cinematic tech-finance thriller ambient background music, heavy bass, no vocals, smooth flow",
-                    "seconds_total": 15,
-                    "steps": 100
-                }
-            )
-            audio_res = handler.get()
-            _bgm_url  = audio_res.get("audio_file", {}).get("url")
-            if _bgm_url:
-                log.info(f"[BGM] Track synthesized seamlessly.")
-        except Exception as _e:
-            log.warning(f"[BGM] AI music generation failed: {_e}. Proceeding without BGM.")
-    else:
-        log.warning("[BGM] FAL_KEY missing. Bypassing music generation.")
-
-    if _bgm_url:
-        elements.append({
-            "type": "audio",
-            "source": _bgm_url,
-            "time": 0,
-            "volume": "12%",
-            "audio_fade_in": 1.0,
-            "audio_fade_out": 2.0
-        })
-        log.info(f"[BGM] Injecting ambient track: {_bgm_url.split('/')[-1]}")
-    else:
-        log.warning("[BGM] All tracks unavailable — rendering without background music.")
+    # Background music injection removed.
+    # We leave the audio cleanly silent behind the primary Voiceover TTS to allow
+    # the publisher to cleanly attach and mix native 0-100% volume TikTok sounds.
         
     # Natively instruct Creatomate to build a fresh 9:16 vertical video
     payload = {
