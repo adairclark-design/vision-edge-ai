@@ -162,20 +162,34 @@ def _submit_render(chart_url: str, audio_url: str | None, caption: str, bg_image
     _bg_is_video = bg_image_url.lower().endswith(".mp4")
     if _bg_is_video:
         log.info("[Creatomate] Using Kling kinetic video background (MP4 loop).")
+        # Natively Constructing a Seamless Loop via Crossfaded Duplication
+        # Instead of a jarring 'loop: True' hard-cut, we overlap 3 instances
+        # of the 5-second video, crossfading them mathematically the final 1.5 seconds.
+        _bg_elements_list = []
+        for i in range(4): # 0s, 3.5s, 7.0s, 10.5s (coverage up to 15.5s)
+            _bg_elements_list.append({
+                "type": "video",
+                "source": bg_image_url,
+                "time": i * 3.5,
+                "duration": 5.0, # The raw Kling video is 5 seconds long
+                "width": "100%",
+                "height": "100%",
+                "x": "50%",
+                "y": "50%",
+                "fill_mode": "cover",
+                "volume": "0%",
+                "track": 1,
+                "transition": {
+                    "type": "fade",      # Seamless Cloud GPU Crossfade
+                    "duration": 1.5      # Generous 1.5 second overlap blend
+                } if i > 0 else False
+            })
+
         _bg_element = {
-            "type": "video",
-            "source": bg_image_url,
+            "type": "composition",
             "time": 0,
             "duration": 12,
-            "width": "100%",
-            "height": "100%",
-            "x": "50%",
-            "y": "50%",
-            "fill_mode": "cover",
-            "loop": True,         # Seamlessly loop the 5s Kling clip across 12s
-            "volume": "0%",       # Mute Kling audio — our separate BGM track handles audio
-            "track": 1,
-            "transition": False,
+            "elements": _bg_elements_list
         }
     else:
         log.info("[Creatomate] Using DALL-E static image background (Ken Burns pan).")
